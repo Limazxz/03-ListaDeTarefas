@@ -12,9 +12,42 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
 
+// Paletas de cores para temas
+const lightColors = {
+  background: "#e0f7fa",
+  topBarBg: "#f5f5f5",
+  title: "#00796b",
+  cardBg: "#fff",
+  inputBg: "#fcfcfc",
+  inputText: "#333",
+  primary: "#009688",
+  taskItemBg: "#fff",
+  taskText: "#333",
+  emptyText: "#9e9e9e",
+  borderSubtle: "rgba(0,0,0,0.1)",
+};
+
+const darkColors = {
+  background: "#211A4C",
+  topBarBg: "#211A4C",
+  title: "#E0E7FF",
+  cardBg: "#2B4450",
+  inputBg: "#2B4450",
+  inputText: "#F5F5F5",
+  primary: "#4DD0E1",
+  taskItemBg: "#211A4C",
+  taskText: "#F5F5F5",
+  emptyText: "#B0BEC5",
+  borderSubtle: "rgba(255,255,255,0.15)",
+};
+
 export default function App() {
   const [tasks, setTasks] = useState([]); //estado para armazenar a lista de tarefas
   const [newTask, setNewTask] = useState(""); //estado para o texto da nova tarefa
+  const [darkMode, setDarkMode] = useState(false);
+  const colors = darkMode ? darkColors : lightColors;
+
+  const toggleTheme = () => setDarkMode((v) => !v);
 
   useEffect(() => {
     const loadTasks = async () => {
@@ -80,13 +113,27 @@ export default function App() {
   };
 
   const renderList = ({ item }) => (
-    <View style={styles.taskItem} key={item.id}>
+    <View
+      style={[
+        styles.taskItem,
+        {
+          backgroundColor: colors.taskItemBg,
+          borderColor: colors.borderSubtle,
+          shadowColor: darkMode ? "#000" : "#fff",
+        },
+      ]}
+      key={item.id}
+    >
       <TouchableOpacity
         onPress={() => toggleTaskCompleted(item.id)}
         style={styles.taskTextContainer}
       >
         <Text
-          style={[styles.taskText, item.completed && styles.completedTaskItem]}
+          style={[
+            styles.taskText,
+            { color: colors.taskText },
+            item.completed && styles.completedTaskItem,
+          ]}
         >
           {item.text}
         </Text>
@@ -95,31 +142,67 @@ export default function App() {
         onPress={() => deleteTask(item.id)}
         style={styles.deleteButton}
       >
-        <Text style={styles.taskText}>🗑️</Text>
+        <Text style={[styles.taskText, { color: colors.taskText }]}>🗑️</Text>
       </TouchableOpacity>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.topBar}>
-        <Text style={styles.toBarTitle}>Minhas Tarefas</Text>
-        <TouchableOpacity>
-          <Text>🌛</Text>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.topBar,
+          {
+            backgroundColor: colors.topBarBg,
+            borderBottomColor: colors.borderSubtle,
+          },
+        ]}
+      >
+        <Text style={[styles.toBarTitle, { color: colors.title }]}>
+          Minhas Tarefas
+        </Text>
+        <TouchableOpacity onPress={toggleTheme}>
+          <Text style={{ fontSize: 22 }}>{darkMode ? "☀️" : "🌛"}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Lista de Tarefas do usuário */}
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.cardBg,
+            shadowColor: darkMode ? "#000" : "#000",
+          },
+        ]}
+      >
         <TextInput
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.inputBg,
+              color: colors.inputText,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
           placeholder="Adicionar nova tarefa..."
+          placeholderTextColor={darkMode ? "#93A4B0" : "#9e9e9e"}
           value={newTask}
           onChangeText={setNewTask}
           onSubmitEditing={addTask} //adiciona a tarefa ao pressionar enter no teclado
         />
-        <TouchableOpacity style={styles.addButton} onPress={addTask}>
-          <Text style={styles.buttonText}>Adicionar</Text>
+        <TouchableOpacity
+          style={[styles.addButton, { backgroundColor: colors.primary }]}
+          onPress={addTask}
+        >
+          <Text style={[styles.buttonText, { color: "#fff" }]}>Adicionar</Text>
         </TouchableOpacity>
       </View>
       <FlatList
@@ -127,23 +210,15 @@ export default function App() {
         data={tasks}
         keyExtractor={(item) => item.id}
         renderItem={renderList}
-        // renderItem={({ item }) => (
-        //    <View key={item.id} style={styles.taskItem}>
-        //      <Text>{item.text}</Text>
-        //      <TouchableOpacity>
-        //        <Text>🗑️</Text>
-        //     </TouchableOpacity>
-        //  </View>
-        // )}
         ListEmptyComponent={() => (
-          <Text style={styles.emptyListText}>
+          <Text style={[styles.emptyListText, { color: colors.emptyText }]}>
             Nenhuma tarefa. Adicione uma nova tarefa!
           </Text>
         )}
         contentContainerStyle={styles.flatListContent}
       />
 
-      <StatusBar style="auto" />
+      <StatusBar style={darkMode ? "light" : "dark"} />
     </View>
   );
 }
