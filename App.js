@@ -1,14 +1,105 @@
 import { StatusBar } from "expo-status-bar";
 import {
+  Alert,
   FlatList,
+  Keyboard,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
 
 export default function App() {
+  const [tasks, setTasks] = useState([]); //estado para armazenar a lista de tarefas
+  const [newTask, setNewTask] = useState(""); //estado para o texto da nova tarefa
+
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const savedTasks = await AsyncStorage.getItem("tasks");
+        savedTasks && setTasks(JSON.parse(savedTasks));
+      } catch (error) {
+        console.log("Erro ao carregar tarefas:", error);
+      }
+    };
+    loadTasks();
+  }, []);
+
+  useEffect(() => {
+    const saveTasks = async () => {
+      try {
+        await AsyncStorage.setItem("tasks", JSON.stringify(tasks));
+      } catch (error) {
+        console.log("Erro ao salvar tarefas:", error);
+      }
+    };
+    saveTasks();
+  }, [tasks]);
+
+  const addTask = () => {
+    if (newTask.trim().length > 0) {
+      // corrigido: trim() antes de length
+      //garante que a tarefa não seja vazia
+      setTasks((prevTasks) => [
+        ...prevTasks,
+        { id: Date.now().toString(), text: newTask, completed: false }, //cria uma nova tarefa com id unico
+      ]);
+      setNewTask(""); //limpa o input
+      Keyboard.dismiss(); //fecha o teclado
+    } else {
+      Alert.alert("Erro", "A tarefa não pode ser vazia.");
+    }
+  };
+
+  const toggleTaskCompleted = (id) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === id ? { ...task, completed: !task.completed } : task
+      )
+    );
+  };
+
+  const deleteTask = (id) => {
+    Alert.alert(
+      "Confirmar exclusão",
+      "Tem certeza que deseja excluir esta tarefa?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: () => {
+            setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id));
+          },
+        },
+      ]
+    );
+  };
+
+  const renderList = ({ item }) => (
+    <View style={styles.taskItem} key={item.id}>
+      <TouchableOpacity
+        onPress={() => toggleTaskCompleted(item.id)}
+        style={styles.taskTextContainer}
+      >
+        <Text
+          style={[styles.taskText, item.completed && styles.completedTaskItem]}
+        >
+          {item.text}
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => deleteTask(item.id)}
+        style={styles.deleteButton}
+      >
+        <Text style={styles.taskText}>🗑️</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
@@ -23,20 +114,35 @@ export default function App() {
         <TextInput
           style={styles.input}
           placeholder="Adicionar nova tarefa..."
+          value={newTask}
+          onChangeText={setNewTask}
+          onSubmitEditing={addTask} //adiciona a tarefa ao pressionar enter no teclado
         />
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity style={styles.addButton} onPress={addTask}>
           <Text style={styles.buttonText}>Adicionar</Text>
         </TouchableOpacity>
       </View>
       <FlatList
         style={styles.flatList}
+        data={tasks}
+        keyExtractor={(item) => item.id}
+        renderItem={renderList}
+        // renderItem={({ item }) => (
+        //    <View key={item.id} style={styles.taskItem}>
+        //      <Text>{item.text}</Text>
+        //      <TouchableOpacity>
+        //        <Text>🗑️</Text>
+        //     </TouchableOpacity>
+        //  </View>
+        // )}
         ListEmptyComponent={() => (
           <Text style={styles.emptyListText}>
-            Nenhuma tarefa por aqui... Adicione uma tarefa!
+            Nenhuma tarefa. Adicione uma nova tarefa!
           </Text>
         )}
         contentContainerStyle={styles.flatListContent}
       />
+
       <StatusBar style="auto" />
     </View>
   );
@@ -121,6 +227,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   taskTextContainer: {
+    color: "#333",
     flex: 1, //permitir que o texto ocupe o espaço possível
     marginRight: 10,
   },
